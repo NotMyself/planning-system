@@ -2,22 +2,12 @@
   "name": "planning-system",
   "version": "1.0.0",
   "description": "Planning and execution system for Claude Code with mechanical enforcement",
-  "author": "Bobby Powers",
-  "repository": "https://github.com/bpowers/planning-system",
-  "commands": [
-    {"name": "plan-new", "file": "commands/plan-new.md"},
-    {"name": "plan-optimize", "file": "commands/plan-optimize.md"},
-    {"name": "plan-orchestrate", "file": "commands/plan-orchestrate.md"},
-    {"name": "plan-parallel", "file": "commands/plan-parallel.md"}
-  ],
-  "hooks": {
-    "file": "hooks/hooks.json"
+  "author": {
+    "name": "Bobby Powers",
+    "url": "https://github.com/bpowers"
   },
-  "skills": [
-    {"name": "planning", "path": "skills/planning"}
-  ],
-  "dependencies": {
-    "runtime": ["bun"],
-    "cli": ["bd", "git"]
-  }
+  "repository": "https://github.com/bpowers/planning-system",
+  "homepage": "https://github.com/bpowers/planning-system",
+  "license": "MIT",
+  "keywords": ["planning", "execution", "automation", "verification", "beads"]
 }
