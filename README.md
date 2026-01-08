@@ -2,6 +2,8 @@
 
 A Claude Code plugin for planning and executing complex features with reliable sub-agents.
 
+![Planning System in action with Perles visual tracking](assets/screenshot.png)
+
 ## What It Does
 
 Break large features into smaller pieces, then let Claude execute them one by one - with built-in verification that ensures each piece is actually complete before moving on.
