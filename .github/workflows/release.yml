@@ -73,7 +73,7 @@ jobs:
       # Step 6: Run tests
       # EC02: If tests fail, release is blocked before GitHub Release is created
       - name: Run tests
-        run: bun test
+        run: bun run test
 
       # Step 7: Build
       - name: Build
