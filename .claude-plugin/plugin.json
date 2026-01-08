@@ -1,6 +1,6 @@
 {
   "name": "planning-system",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Planning and execution system for Claude Code with mechanical enforcement",
   "author": {
     "name": "Bobby Powers",
@@ -9,5 +9,11 @@
   "repository": "https://github.com/bpowers/planning-system",
   "homepage": "https://github.com/bpowers/planning-system",
   "license": "MIT",
-  "keywords": ["planning", "execution", "automation", "verification", "beads"]
+  "keywords": [
+    "planning",
+    "execution",
+    "automation",
+    "verification",
+    "beads"
+  ]
 }

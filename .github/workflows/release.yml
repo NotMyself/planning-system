@@ -1,0 +1,179 @@
+# GitHub Actions Release Workflow
+#
+# Triggered on v* tag push to:
+# 1. Validate version consistency across package.json and plugin.json
+# 2. Run tests and build
+# 3. Generate changelog from commits
+# 4. Create GitHub Release
+# 5. Submit PR to marketplace repository
+#
+# Edge Cases:
+# - EC01: Tag/version mismatch -> Validation fails, release blocked
+# - EC02: Tests fail -> Release blocked before GitHub Release created
+# - EC03: Marketplace PR fails -> Release succeeds, logged as warning
+# - EC04: Prerelease tag -> Marked as prerelease in GitHub Release
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout with full history for changelog generation
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Setup Bun runtime
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Step 3: Extract version from tag (strip 'v' prefix)
+      - name: Extract version
+        id: version
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this is a prerelease (contains hyphen)
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Tag: $TAG_NAME"
+          echo "Version: $VERSION"
+          echo "Prerelease: $([[ "$VERSION" == *-* ]] && echo 'true' || echo 'false')"
+
+      # Step 4: Validate version matches package.json and plugin.json
+      # EC01: If tag doesn't match version files, this step fails and blocks release
+      - name: Validate version
+        run: bun run scripts/validate-version.ts ${{ steps.version.outputs.version }}
+
+      # Step 5: Install dependencies
+      - name: Install dependencies
+        run: bun install
+
+      # Step 6: Run tests
+      # EC02: If tests fail, release is blocked before GitHub Release is created
+      - name: Run tests
+        run: bun test
+
+      # Step 7: Build
+      - name: Build
+        run: bun run build
+
+      # Step 8: Generate changelog from commits
+      # D01: Use requarks/changelog-action for changelog generation
+      - name: Generate changelog
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.version.outputs.tag }}
+          excludeTypes: ""
+
+      # Step 9: Create GitHub Release
+      # EC04: Prerelease tags (containing hyphen) are marked as prerelease
+      # D04: No release archive by default (GitHub auto-generates source archives)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: ${{ steps.changelog.outputs.changes }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 10: Checkout marketplace repository
+      # D02: Direct PR to marketplace (not repository_dispatch)
+      # D03: Store PAT in GitHub Secrets
+      - name: Checkout marketplace
+        uses: actions/checkout@v4
+        with:
+          repository: NotMyself/claude-dotnet-marketplace
+          token: ${{ secrets.MARKETPLACE_PAT }}
+          path: marketplace
+        # EC03: If marketplace checkout fails, release still succeeds
+        continue-on-error: true
+        id: checkout-marketplace
+
+      # Step 11: Update marketplace plugin version
+      - name: Update marketplace
+        if: steps.checkout-marketplace.outcome == 'success'
+        run: |
+          cd marketplace
+
+          PLUGIN_FILE="plugins/planning-system.json"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          if [ -f "$PLUGIN_FILE" ]; then
+            # Update version in plugin.json using jq if available, otherwise use sed
+            if command -v jq &> /dev/null; then
+              jq --arg version "$VERSION" '.version = $version' "$PLUGIN_FILE" > tmp.json && mv tmp.json "$PLUGIN_FILE"
+            else
+              # Fallback to sed for simple version replacement
+              sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$PLUGIN_FILE"
+            fi
+
+            echo "Updated $PLUGIN_FILE to version $VERSION"
+            cat "$PLUGIN_FILE"
+          else
+            echo "Warning: $PLUGIN_FILE not found in marketplace repository"
+            exit 1
+          fi
+        # EC03: If update fails, release still succeeds
+        continue-on-error: true
+        id: update-marketplace
+
+      # Step 12: Create PR to marketplace repository
+      - name: Create marketplace PR
+        if: steps.checkout-marketplace.outcome == 'success' && steps.update-marketplace.outcome == 'success'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.MARKETPLACE_PAT }}
+          path: marketplace
+          commit-message: "chore(planning-system): update to ${{ steps.version.outputs.tag }}"
+          title: "Update planning-system to ${{ steps.version.outputs.tag }}"
+          body: |
+            Automated PR to update planning-system plugin version.
+
+            **Version:** ${{ steps.version.outputs.version }}
+            **Release:** ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}
+
+            ---
+            *This PR was automatically created by the planning-system release workflow.*
+          branch: update-planning-system-${{ steps.version.outputs.version }}
+          base: main
+          delete-branch: true
+        # EC03: If PR creation fails, release still succeeds (logged as warning)
+        continue-on-error: true
+
+      # Log marketplace update status
+      - name: Log marketplace status
+        if: always()
+        run: |
+          echo "=== Marketplace Update Status ==="
+          echo "Checkout: ${{ steps.checkout-marketplace.outcome }}"
+          echo "Update: ${{ steps.update-marketplace.outcome }}"
+          if [ "${{ steps.checkout-marketplace.outcome }}" != "success" ] || [ "${{ steps.update-marketplace.outcome }}" != "success" ]; then
+            echo "::warning::Marketplace update did not complete successfully. Please update manually if needed."
+          fi

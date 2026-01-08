@@ -1,6 +1,6 @@
 {
   "name": "@bpowers/planning-system",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Planning and execution system for Claude Code with mechanical enforcement",
   "type": "module",
   "author": "Bobby Powers",
