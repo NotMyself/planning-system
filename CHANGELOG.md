@@ -7,14 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- GitHub Actions release workflow for automated releases
-- Version validation and bump scripts
-
-## [1.0.0] - 2026-01-08
+## [0.1.0] - 2026-01-08
 
 ### Added
 - Initial release of planning-system skill
 - Planning, optimization, and orchestration workflows
 - Beads integration for state management
 - Verification system with hooks
+- GitHub Actions release workflow for automated releases
+- Version validation and bump scripts
