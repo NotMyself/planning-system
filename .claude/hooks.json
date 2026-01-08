@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run --cwd .claude/skills/planning/verification verify-stop.ts"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run --cwd .claude/skills/planning/verification verify-subagent.ts"
+          }
+        ]
+      }
+    ]
+  }
+}
