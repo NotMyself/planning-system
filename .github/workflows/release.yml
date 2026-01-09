@@ -127,26 +127,26 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
 
           if [ -f "$MARKETPLACE_FILE" ]; then
-            # Update version for planning-system in the plugins array
+            # Update version for plan in the plugins array
             jq --arg version "$VERSION" '
               .plugins |= map(
-                if .name == "planning-system" then .version = $version else . end
+                if .name == "plan" then .version = $version else . end
               )
             ' "$MARKETPLACE_FILE" > tmp.json && mv tmp.json "$MARKETPLACE_FILE"
 
-            echo "Updated planning-system to version $VERSION in $MARKETPLACE_FILE"
-            jq '.plugins[] | select(.name == "planning-system")' "$MARKETPLACE_FILE"
+            echo "Updated plan to version $VERSION in $MARKETPLACE_FILE"
+            jq '.plugins[] | select(.name == "plan")' "$MARKETPLACE_FILE"
           else
             echo "Warning: $MARKETPLACE_FILE not found in marketplace repository"
             exit 1
           fi
 
-          # Update version in README.md for planning-system section
+          # Update version in README.md for plan section
           if [ -f "$README_FILE" ]; then
-            # Find the planning-system section and update its version
-            sed -i '/^### planning-system/,/^---$/ s/\*\*Version:\*\* [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/**Version:** '"$VERSION"'/' "$README_FILE"
-            echo "Updated planning-system version in $README_FILE"
-            grep -A 30 "^### planning-system" "$README_FILE" | grep "Version:"
+            # Find the plan section and update its version
+            sed -i '/^### plan/,/^---$/ s/\*\*Version:\*\* [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/**Version:** '"$VERSION"'/' "$README_FILE"
+            echo "Updated plan version in $README_FILE"
+            grep -A 30 "^### plan" "$README_FILE" | grep "Version:"
           fi
         # EC03: If update fails, release still succeeds
         continue-on-error: true
@@ -159,17 +159,17 @@ jobs:
         with:
           token: ${{ secrets.MARKETPLACE_PAT }}
           path: marketplace
-          commit-message: "chore(planning-system): update to ${{ steps.version.outputs.tag }}"
-          title: "Update planning-system to ${{ steps.version.outputs.tag }}"
+          commit-message: "chore(plan): update to ${{ steps.version.outputs.tag }}"
+          title: "Update plan to ${{ steps.version.outputs.tag }}"
           body: |
-            Automated PR to update planning-system plugin version.
+            Automated PR to update plan plugin version.
 
             **Version:** ${{ steps.version.outputs.version }}
             **Release:** ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}
 
             ---
-            *This PR was automatically created by the planning-system release workflow.*
-          branch: update-planning-system-${{ steps.version.outputs.version }}
+            *This PR was automatically created by the plan release workflow.*
+          branch: update-plan-${{ steps.version.outputs.version }}
           base: main
           delete-branch: true
         # EC03: If PR creation fails, release still succeeds (logged as warning)
