@@ -87,7 +87,6 @@ Load these on-demand during command execution:
 
 - `workflows/1-planning.md` - Planning phase details
 - `workflows/2-optimization.md` - Optimization phase details
-- `workflows/4-parallel.md` - Parallel execution details
 
 ## Templates
 

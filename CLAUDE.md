@@ -12,7 +12,6 @@ This is a planning and execution system for Claude Code that uses mechanical enf
 |---------|---------|
 | `plan:new` | Enter planning mode, create plan and store in Beads epic |
 | `plan:optimize <epic-id>` | Decompose plan into features and Beads tasks |
-| `plan:parallel <dir1> <dir2>` | Execute multiple plans using git worktrees |
 
 ## Setup
 

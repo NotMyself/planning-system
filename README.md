@@ -42,14 +42,6 @@ Break your plan into executable features. Creates Beads tasks with full prompts 
 plan:optimize <epic-id>
 ```
 
-### `plan:parallel`
-
-Run multiple plans simultaneously using git worktrees.
-
-```
-plan:parallel dev/plans/feature-a dev/plans/feature-b
-```
-
 ## Typical Session
 
 ```
