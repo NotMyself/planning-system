@@ -157,17 +157,32 @@ jobs:
             # Read the source marketplace content and replace version placeholder
             PLUGIN_CONTENT=$(cat "$SOURCE_MARKETPLACE" | sed "s/{{VERSION}}/$VERSION/g")
 
-            # Extract header (everything before ### plan)
-            HEADER=$(sed -n '1,/^### plan$/p' "$README_FILE" | head -n -1)
+            # Write complete README with fixed header and footer
+            cat > "$README_FILE" << 'HEADER_EOF'
+# Claude Code Plugin Marketplace
 
-            # Use fixed footer - simpler and avoids extraction bugs
-            FOOTER=$(printf '%s\n\n%s\n\n%s' '---' '## License' 'MIT')
+A centralized marketplace for Bobby Johnson's Claude Code plugins.
 
-            # Reconstruct README with updated plugin content
-            echo "$HEADER" > "$README_FILE"
+## Installation
+
+Add this marketplace to your Claude Code CLI:
+
+```bash
+/plugin marketplace add NotMyself/claude-dotnet-marketplace
+```
+
+## Available Plugins
+
+HEADER_EOF
             echo "$PLUGIN_CONTENT" >> "$README_FILE"
-            echo "" >> "$README_FILE"
-            echo "$FOOTER" >> "$README_FILE"
+            cat >> "$README_FILE" << 'FOOTER_EOF'
+
+---
+
+## License
+
+MIT
+FOOTER_EOF
 
             echo "Synced plan plugin content from MARKETPLACE.md"
             echo "=== Updated README preview ==="
