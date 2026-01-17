@@ -5,11 +5,19 @@
  * Runs when Claude attempts to stop responding.
  * Only triggers reflection if automatic mode is enabled.
  *
+ * Receives hook data via stdin:
+ * {
+ *   "session_id": "string",
+ *   "transcript_path": "/path/to/transcript.jsonl",
+ *   "cwd": "string",
+ *   "hook_event_name": "string"
+ * }
+ *
  * Exit codes:
  * - 0: Always (never blocks stop)
  */
 
-import { createInterface } from "readline";
+import { readFileSync } from "fs";
 import { isEnabled, recordReflection } from "./lib/reflect-config";
 import { analyzeConversation } from "./lib/reflect-agent";
 import {
@@ -20,21 +28,73 @@ import {
   isGitAvailable,
 } from "./lib/reflect-utils";
 
-/**
- * Prompts user for input
- */
-async function prompt(question: string): Promise<string> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+interface HookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  hook_event_name: string;
+}
 
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase());
-    });
-  });
+interface TranscriptEntry {
+  type: string;
+  message?: {
+    role: string;
+    content: string | Array<{ type: string; text?: string }>;
+  };
+}
+
+/**
+ * Reads hook input from stdin
+ */
+async function readHookInput(): Promise<HookInput | null> {
+  try {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk);
+    }
+    const input = Buffer.concat(chunks).toString("utf-8");
+    return JSON.parse(input) as HookInput;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads transcript JSONL and converts to text format
+ */
+function readTranscript(transcriptPath: string): string {
+  try {
+    const content = readFileSync(transcriptPath, "utf-8");
+    const lines = content.trim().split("\n");
+    const parts: string[] = [];
+
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line) as TranscriptEntry;
+        if (entry.type === "message" && entry.message) {
+          const role = entry.message.role === "user" ? "User" : "Assistant";
+          let text = "";
+          if (typeof entry.message.content === "string") {
+            text = entry.message.content;
+          } else if (Array.isArray(entry.message.content)) {
+            text = entry.message.content
+              .filter((c) => c.type === "text" && c.text)
+              .map((c) => c.text)
+              .join("\n");
+          }
+          if (text) {
+            parts.push(`${role}: ${text}`);
+          }
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    return parts.join("\n\n");
+  } catch {
+    return "";
+  }
 }
 
 async function main(): Promise<void> {
@@ -44,10 +104,17 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // 2. Get conversation transcript from CLAUDE_TRANSCRIPT env var
-  const transcript = process.env.CLAUDE_TRANSCRIPT;
-  if (!transcript) {
+  // 2. Read hook input from stdin
+  const hookInput = await readHookInput();
+  if (!hookInput || !hookInput.transcript_path) {
     // No transcript available, skip silently
+    process.exit(0);
+  }
+
+  // 3. Read and parse transcript
+  const transcript = readTranscript(hookInput.transcript_path);
+  if (!transcript) {
+    // Empty transcript, skip silently
     process.exit(0);
   }
 
@@ -67,23 +134,15 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // 5. Display learnings and prompt for approval
-  console.log("\n=== Reflect: High-Confidence Learnings Detected ===");
+  // 5. Display learnings (to stderr so user sees them)
+  console.error("\n=== Reflect: Auto-applying High-Confidence Learnings ===");
   for (const learning of highConfidenceLearnings) {
-    console.log(`\n  - ${learning.rule}`);
-    console.log(`    Evidence: "${learning.evidence}"`);
+    console.error(`\n  - ${learning.rule}`);
+    console.error(`    Evidence: "${learning.evidence}"`);
   }
-  console.log();
+  console.error();
 
-  // 6. Prompt for approval
-  const answer = await prompt("Apply these learnings to skill file? (y/n): ");
-
-  if (answer !== "y" && answer !== "yes") {
-    console.log("Skipped.");
-    process.exit(0);
-  }
-
-  // 7. Apply changes
+  // 6. Apply changes (auto-apply in automatic mode - user consented by enabling)
   const skillFile = ensureSkillFile();
   const content = formatLearningsSection(highConfidenceLearnings);
   appendToSkillFile(skillFile, content);
@@ -96,14 +155,14 @@ async function main(): Promise<void> {
     );
 
     if (commitResult.success) {
-      console.log(`Applied and committed to ${skillFile}`);
+      console.error(`Applied and committed to ${skillFile}`);
     } else {
-      console.log(
+      console.error(
         `Applied to ${skillFile} (not committed: ${commitResult.error})`
       );
     }
   } else {
-    console.log(`Applied to ${skillFile}`);
+    console.error(`Applied to ${skillFile}`);
   }
 
   // 9. Record reflection in state
