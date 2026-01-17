@@ -1,6 +1,6 @@
 {
   "name": "plan",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Planning and execution system for Claude Code with mechanical enforcement",
   "author": {
     "name": "Bobby Powers",
