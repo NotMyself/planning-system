@@ -88,12 +88,14 @@ Claude: [detailed planning for F001, updates Feature description]
 
 > plan:optimize chat-app-xyz.f001
 
-Claude: [creates Tasks under F001 with prompts]
+Claude: [evaluates for research needs, then creates Tasks under F001]
 
 > bd ready
 > bd update <task-id> --status=in_progress
 [work on tasks, close when done, then plan:new the next feature]
 ```
+
+**Research evaluation:** When optimizing a feature, Claude scans for uncertainty markers (TBD, TODO, unclear, investigate, etc.). If found, it suggests creating research tasks first. Research tasks are immediately workable and bypass workflow checks.
 
 **Workflow is enforced** - you cannot skip steps. Trying to implement a Feature directly will be blocked until you run `plan:optimize`.
 

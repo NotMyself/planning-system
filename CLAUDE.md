@@ -41,13 +41,27 @@ plan:new --master ──► Beads Epic with child Features (brief descriptions)
 plan:new <feature-id> ──► Detailed plan added to Feature description
                           │
                           ▼
-plan:optimize <feature-id> ──► Beads Tasks under Feature + dev/plans/<name>/
+plan:optimize <feature-id> ──► Research evaluation → Beads Tasks + dev/plans/<name>/
                           │
                           ▼
 bd ready ──► Pull-based execution (one task at a time)
 ```
 
 Workflow compliance gate enforces this progression - you cannot skip steps.
+
+### Research Evaluation (Master Mode Only)
+
+When running `plan:optimize` on a feature under a master plan epic, it evaluates if research is needed before decomposing into tasks:
+
+**Scans for uncertainty markers:**
+- "TBD", "TODO", "unclear", "unknown", "investigate", "explore", "evaluate", "compare"
+- Missing Implementation/Approach/Deliverables sections
+- Questions without answers
+
+**If uncertainties found:** Suggests creating research tasks (title prefix: `Research:`)
+**If no uncertainties:** Offers research anyway, recommends proceeding with optimization
+
+Research tasks bypass workflow compliance and are immediately workable.
 
 ### Mechanical Enforcement
 
