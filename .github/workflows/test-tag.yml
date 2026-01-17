@@ -1,0 +1,13 @@
+name: Test Tag Trigger
+
+on:
+  push:
+    tags:
+      - 'test-*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo tag
+        run: echo "Tag triggered: ${{ github.ref }}"
