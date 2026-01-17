@@ -116,7 +116,7 @@ jobs:
         continue-on-error: true
         id: checkout-marketplace
 
-      # Step 11: Update marketplace plugin version
+      # Step 11: Update marketplace plugin version and README
       - name: Update marketplace
         if: steps.checkout-marketplace.outcome == 'success'
         run: |
@@ -125,6 +125,7 @@ jobs:
           MARKETPLACE_FILE=".claude-plugin/marketplace.json"
           README_FILE="README.md"
           VERSION="${{ steps.version.outputs.version }}"
+          SOURCE_MARKETPLACE="../MARKETPLACE.md"
 
           if [ -f "$MARKETPLACE_FILE" ]; then
             # Update version for plan in the plugins array
@@ -141,12 +142,52 @@ jobs:
             exit 1
           fi
 
-          # Update version in README.md for plan section
-          if [ -f "$README_FILE" ]; then
-            # Find the plan section and update its version
-            sed -i '/^### plan/,/^---$/ s/\*\*Version:\*\* [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/**Version:** '"$VERSION"'/' "$README_FILE"
-            echo "Updated plan version in $README_FILE"
-            grep -A 30 "^### plan" "$README_FILE" | grep "Version:"
+          # Sync README content from source MARKETPLACE.md
+          if [ -f "$README_FILE" ] && [ -f "$SOURCE_MARKETPLACE" ]; then
+            # Read the source marketplace content and replace version placeholder
+            PLUGIN_CONTENT=$(cat "$SOURCE_MARKETPLACE" | sed "s/{{VERSION}}/$VERSION/g")
+
+            # Extract header (everything before ### plan)
+            HEADER=$(sed -n '1,/^### plan$/p' "$README_FILE" | head -n -1)
+
+            # Extract footer (everything after the --- following the plan section)
+            # Find line number of ### plan, then find the next --- after it
+            PLAN_LINE=$(grep -n "^### plan$" "$README_FILE" | head -1 | cut -d: -f1)
+            if [ -n "$PLAN_LINE" ]; then
+              FOOTER_START=$(tail -n +$PLAN_LINE "$README_FILE" | grep -n "^---$" | head -1 | cut -d: -f1)
+              if [ -n "$FOOTER_START" ]; then
+                FOOTER_LINE=$((PLAN_LINE + FOOTER_START - 1))
+                FOOTER=$(tail -n +$FOOTER_LINE "$README_FILE")
+              else
+                FOOTER="---
+
+## License
+
+MIT"
+              fi
+            else
+              FOOTER="---
+
+## License
+
+MIT"
+            fi
+
+            # Reconstruct README with updated plugin content
+            echo "$HEADER" > "$README_FILE"
+            echo "$PLUGIN_CONTENT" >> "$README_FILE"
+            echo "" >> "$README_FILE"
+            echo "$FOOTER" >> "$README_FILE"
+
+            echo "Synced plan plugin content from MARKETPLACE.md"
+            echo "=== Updated README preview ==="
+            head -60 "$README_FILE"
+          else
+            # Fallback: just update version number
+            if [ -f "$README_FILE" ]; then
+              sed -i '/^### plan/,/^---$/ s/\*\*Version:\*\* [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/**Version:** '"$VERSION"'/' "$README_FILE"
+              echo "Updated plan version in $README_FILE (fallback mode)"
+            fi
           fi
         # EC03: If update fails, release still succeeds
         continue-on-error: true
