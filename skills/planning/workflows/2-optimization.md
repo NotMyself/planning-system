@@ -299,8 +299,13 @@ If user wants research:
      --title="Research: <topic>" \
      --description="Explore <topic> to inform feature implementation."
    ```
-3. Tell user: "Research tasks created. Run `bd ready` to start research. When complete, run `plan:optimize <feature-id>` again."
-4. Exit (do not proceed with optimization)
+3. Remove blocking dependency so research tasks are immediately workable:
+   ```bash
+   bd dep remove <research-task-id> <feature-id>
+   ```
+   (The `--parent` flag creates a blocking dependency; research tasks should be workable before the parent feature is complete)
+4. Tell user: "Research tasks created. Run `bd ready` to start research. When complete, run `plan:optimize <feature-id>` again."
+5. Exit (do not proceed with optimization)
 
 **Research Task Completion Flow:**
 
