@@ -98,37 +98,45 @@ function readTranscript(transcriptPath: string): string {
 }
 
 async function main(): Promise<void> {
+  console.error("[reflect-hook] Starting...");
+
   // 1. Check if automatic reflection is enabled
   if (!isEnabled()) {
-    // Silently exit - reflection is disabled
+    console.error("[reflect-hook] Disabled, exiting");
     process.exit(0);
   }
+  console.error("[reflect-hook] Enabled, reading input...");
 
   // 2. Read hook input from stdin
   const hookInput = await readHookInput();
   if (!hookInput || !hookInput.transcript_path) {
-    // No transcript available, skip silently
+    console.error("[reflect-hook] No transcript path in input:", JSON.stringify(hookInput));
     process.exit(0);
   }
+  console.error("[reflect-hook] Transcript path:", hookInput.transcript_path);
 
   // 3. Read and parse transcript
   const transcript = readTranscript(hookInput.transcript_path);
   if (!transcript) {
-    // Empty transcript, skip silently
+    console.error("[reflect-hook] Empty transcript");
     process.exit(0);
   }
+  console.error("[reflect-hook] Transcript length:", transcript.length);
 
-  // 3. Analyze conversation
+  // 4. Analyze conversation
+  console.error("[reflect-hook] Analyzing conversation...");
   const result = await analyzeConversation(transcript);
+  console.error("[reflect-hook] Analysis result:", result.skipped ? `skipped: ${result.skipReason}` : `${result.learnings.length} learnings`);
   if (result.skipped || result.learnings.length === 0) {
     // Nothing to apply, skip silently (EC09)
     process.exit(0);
   }
 
-  // 4. Filter to high-confidence learnings only (for automatic mode)
+  // 5. Filter to high-confidence learnings only (for automatic mode)
   const highConfidenceLearnings = result.learnings.filter(
     (l) => l.confidence === "high"
   );
+  console.error("[reflect-hook] High confidence:", highConfidenceLearnings.length);
   if (highConfidenceLearnings.length === 0) {
     // No high-confidence learnings, skip silently
     process.exit(0);
