@@ -6,11 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun run ./verification/hooks/reflect-hook-wrapper.ts"
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/verification/hooks/reflect-hook-wrapper.ts\""
           },
           {
             "type": "command",
-            "command": "bun run ./verification/hooks/verify-stop-wrapper.ts"
+            "command": "bun run \"${CLAUDE_PLUGIN_ROOT}/verification/hooks/verify-stop-wrapper.ts\""
           }
         ]
       }
